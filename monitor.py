@@ -39,10 +39,14 @@ def get_forcast(city: str, country: str, timezone: str, latitude: float, longitu
     return local_time, todays_sunset, s["sunrise"]
 
 async def handle_error(local_time: datetime, todays_sunset: datetime, sunrise: datetime) -> float:
+    global client
     sleep_time = (sunrise - local_time).total_seconds()
     if local_time > todays_sunset:
+        print("Disconnecting from MQTT for the time being...")
+        client.disconnect()
         print(f"Its dark -_- sleeping for {sleep_time / 3600} hours before trying again zzZ")
         await asyncio.sleep(sleep_time)
+        client.reconnect()
 
 
 def notification_handler(sender: str, data: bytearray) -> None:
