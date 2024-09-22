@@ -1,6 +1,6 @@
 # Polycab Solar Inverter to MQTT
 
-This script communicates with the Polycab PSIS-3K-SM1 inverter over Bluetooth, sending key inverter data like solar generation to an MQTT broker. The values were reverse-engineered from the Android app used for local monitoring.
+This script runs as a service on my raspberry pi zero 2 w and communicates with the Polycab PSIS-3K-SM1 inverter over Bluetooth. It feeds the key inverter data like solar generation, to the mosquitto MQTT broker on my Home assistant. The values were reverse-engineered from the [Android app](https://play.google.com/store/apps/details?id=com.polycab.e&hl=en_IN) used for local monitoring.
 
 ## Inverter Model:
 **PSIS-3K-SM1**
