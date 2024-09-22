@@ -10,8 +10,8 @@ This script communicates with the Polycab PSIS-3K-SM1 inverter over Bluetooth, s
 - **Error Handling:** Automatically retries the connection if an error occurs
 
 ## Mapped Variables:
-- **Solar Input:** Current power generated from solar input
-- **Inverter Power:** Power being used by the inverter
+- **Solar Input:** Power coming from solar panels
+- **Inverter Power:** The power going to the grid from the inverter
 - **Peak Power:** Maximum power achieved during the day
 - **Active Power:** Real-time power consumption
 - **L1 Voltage:** Voltage on Line 1
