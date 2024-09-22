@@ -13,7 +13,7 @@ This script communicates with the Polycab PSIS-3K-SM1 inverter over Bluetooth, s
 - **Solar Input:** Power coming from solar panels
 - **Inverter Power:** The power going to the grid from the inverter
 - **Peak Power:** Maximum power achieved during the day
-- **Active Power:** Real-time power consumption
+- **Active Power:** Not exactly sure what this is (lmk if you know)
 - **L1 Voltage:** Voltage on Line 1
 - **L1 Current:** Current on Line 1
 - **Temperature:** Inverter temperature
