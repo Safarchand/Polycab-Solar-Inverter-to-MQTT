@@ -176,7 +176,7 @@ async def send_mqtt(Name: str, Delay: float) -> None:
         await asyncio.sleep(Delay)
 
 if __name__ == "__main__":
-    Name = "BLE1295" # Solar Inverter (Change this)
+    Name = "BLE1295" # Solar Inverter, Change this
     Delay = 5.0
     try:
         asyncio.run(send_mqtt(Name, Delay))
