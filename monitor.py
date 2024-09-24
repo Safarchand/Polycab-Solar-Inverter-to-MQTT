@@ -25,6 +25,7 @@ client = paho.Client(paho.CallbackAPIVersion.VERSION2)
 client.username_pw_set(username="USERNAME_PLACEHOLDER", password="PASSWORD_PLACEHOLDER") # Change this
 
 client.connect("SERVER_ADDRESS_PLACEHOLDER", 1883, keepalive = 180) # Change this
+client.loop_start()
 
 def get_forcast(city: str, country: str, timezone: str, latitude: float, longitude: float, delta: int = 1) -> tuple:
     """
@@ -43,10 +44,12 @@ async def handle_error(local_time: datetime, todays_sunset: datetime, sunrise: d
     sleep_time = (sunrise - local_time).total_seconds()
     if local_time > todays_sunset:
         print("Disconnecting from MQTT for the time being...")
+        client.loop_stop()
         client.disconnect()
         print(f"Its dark -_- sleeping for {sleep_time / 3600} hours before trying again zzZ")
         await asyncio.sleep(sleep_time)
         client.reconnect()
+        client.loop_start()
 
 
 def notification_handler(sender: str, data: bytearray) -> None:
