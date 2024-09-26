@@ -40,7 +40,7 @@ async def handle_error(local_time: datetime, todays_sunset: datetime, sunrise: d
         print(f"Its dark -_- sleeping for {sleep_time / 3600} hours before trying again zzZ")
         await asyncio.sleep(sleep_time)
         client.reconnect()
-        print("Reconnection to the MQTT broker")
+        print("Reconnecting to the MQTT broker")
         client.loop_start()
     
     # Get updated forcast
