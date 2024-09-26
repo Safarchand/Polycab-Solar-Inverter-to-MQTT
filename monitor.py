@@ -7,10 +7,9 @@ from astral.sun import sun
 from bleak import BleakClient, BleakScanner, BleakError
 
 
-# Characteristic
+# Characteristics
 WRITE_CHARACTERISTIC_UUID = "0000ff11-0000-1000-8000-00805f9b34fb"
 NOTIFY_CHARACTERISTIC_UUID = "0000ff12-0000-1000-8000-00805f9b34fb"
-
 
 REQ_SI = bytearray.fromhex("0103100100201112") # Solar Input, Inverter Power etc command
 REQ_ETODAY = bytearray.fromhex("01031021001DD109")# E-Today, E-Total, Peak Power etc command
@@ -19,13 +18,6 @@ REQ_ETODAY = bytearray.fromhex("01031021001DD109")# E-Today, E-Total, Peak Power
 address = ''
 Notifications = {0: '', 1: ''}
 Notification_no = 0
-
-
-client = paho.Client(paho.CallbackAPIVersion.VERSION2)
-client.username_pw_set(username="USERNAME_PLACEHOLDER", password="PASSWORD_PLACEHOLDER") # Change this
-
-client.connect("SERVER_ADDRESS_PLACEHOLDER", 1883, keepalive = 180) # Change this
-client.loop_start()
 
 def get_forcast(city: str, country: str, timezone: str, latitude: float, longitude: float, delta: int = 1) -> tuple:
     """
@@ -36,11 +28,10 @@ def get_forcast(city: str, country: str, timezone: str, latitude: float, longitu
     s = sun(city_info.observer, datetime.date.today() + datetime.timedelta(days=delta), tzinfo=city_info.tzinfo)
     s1 = sun(city_info.observer, datetime.date.today(), tzinfo=city_info.tzinfo)
     todays_sunset = s1["sunset"]
-
     return local_time, todays_sunset, s["sunrise"]
 
 async def handle_error(local_time: datetime, todays_sunset: datetime, sunrise: datetime) -> float:
-    global client
+    global client, address
     sleep_time = (sunrise - local_time).total_seconds()
     if local_time > todays_sunset:
         print("Disconnecting from MQTT for the time being...")
@@ -49,7 +40,12 @@ async def handle_error(local_time: datetime, todays_sunset: datetime, sunrise: d
         print(f"Its dark -_- sleeping for {sleep_time / 3600} hours before trying again zzZ")
         await asyncio.sleep(sleep_time)
         client.reconnect()
+        print("Reconnection to the MQTT broker")
         client.loop_start()
+    
+    # Get updated forcast
+    local_time, todays_sunset, sunrise = get_forcast("Baramati", "India", "Asia/Kolkata", 18.150663, 74.576782)
+    return local_time, todays_sunset, sunrise
 
 
 def notification_handler(sender: str, data: bytearray) -> None:
@@ -72,11 +68,11 @@ def calculate_values(data: dict) -> dict:
             if data[d].startswith("01033"):
                 E_Today = hex_to_int(data[d], 34, 38, 1000)
                 E_Total = hex_to_int(data[d], 10, 14, 1000)
-                Peak_Power = hex_to_int(data[d], 114, 118, 10000)
+                Peak_Power = hex_to_int(data[d], 114, 118, 10)
                 Active_Power = hex_to_int(data[d], 98, 102, 10)
             else:
                 Solar_Input = hex_to_int(data[d], 78, 82, 10)
-                Inverter_Power = hex_to_int(data[d], 18, 22, 10000)
+                Inverter_Power = hex_to_int(data[d], 18, 22, 10)
                 L1V = hex_to_int(data[d], 6, 10, 10)
                 L1C = hex_to_int(data[d], 10, 14, 100)
                 Temperature = hex_to_int(data[d], 116, 118)
@@ -135,7 +131,7 @@ async def main(Name: str) -> tuple:
     if not address:
         print(f"Trying to find address for device: {Name}")
         address = await find_device(Name)
-    local_time, todays_sunset, sunrise = get_forcast("CITY_PLACEHOLDER", "COUNTRY_PLACEHOLDER", "TIMEZONE_PLACEHOLDER", LATITUTE_PLACEHOLDER, LONGITUDE_PLACEHOLDER) # Change this
+    local_time, todays_sunset, sunrise = get_forcast("CITY_PLACEHOLDER", "COUNTRY_PLACEHOLDER", "TimeZone_PLACEHOLDER", LATITUDE_PLACEHOLDER, LONGITUDE_PLACEHOLDER)
     if address:
         while True:
             try: 
@@ -161,19 +157,25 @@ async def main(Name: str) -> tuple:
                 values = calculate_values(Notifications)
                 Notifications = {0: '', 1: ''}
                 return values
-            except BleakError as e:
+            except (BleakError, Exception) as e:
                 print(f"BleakError: {e}")
-                await handle_error(local_time, todays_sunset, sunrise)
-                continue
-            except Exception as e:
-                print(f"Exception: {e}")
-                await handle_error(local_time, todays_sunset, sunrise)
+                local_time, todays_sunset, sunrise = await handle_error(local_time, todays_sunset, sunrise)
+                print(local_time, todays_sunset, sunrise)
                 continue
     else:
-        await handle_error(local_time, todays_sunset, sunrise)
+        local_time, todays_sunset, sunrise = await handle_error(local_time, todays_sunset, sunrise)
 
-async def send_mqtt(Name: str, Delay: float) -> None:
+def check_mqtt_connection(client: paho.Client) -> None:
+    if not client.is_connected():
+        print("Connection lost! connecting to mqtt broker...")
+        client.reconnect()
+        client.loop_start()
+    else:
+        print("MQTT connection is stable :)")
+
+async def send_mqtt(Name: str, client: paho.Client, Delay: float) -> None:
     while True:
+        check_mqtt_connection(client)
         data = await main(Name)
         client.publish('solar-data', json.dumps(data), 0)
         if data:
@@ -183,9 +185,13 @@ async def send_mqtt(Name: str, Delay: float) -> None:
         await asyncio.sleep(Delay)
 
 if __name__ == "__main__":
-    Name = "BLE1295" # Solar Inverter, Change this
-    Delay = 5.0
+    Name = "BLE1295" # Solar Inverter
+    Delay = 2.0
+    client = paho.Client("solar pi") # Name of the MQTT client, "solar pi" cause its running on a raspberry pi ;)
+    client.username_pw_set(username="USERNAME_PLACEHOLDER", password="PASSWORD_PLACEHOLDER") # Change this
+    client.connect("MQTT_SERVER", 1883,keepalive = 180) # Change this
+    client.loop_start()
     try:
-        asyncio.run(send_mqtt(Name, Delay))
+        asyncio.run(send_mqtt(Name, client, Delay))
     except KeyboardInterrupt:
         print("User interrupted the script :'(")
