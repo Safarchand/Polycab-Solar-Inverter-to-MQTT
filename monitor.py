@@ -44,7 +44,7 @@ async def handle_error(local_time: datetime, todays_sunset: datetime, sunrise: d
         client.loop_start()
     
     # Get updated forcast
-    local_time, todays_sunset, sunrise = get_forcast("Baramati", "India", "Asia/Kolkata", 18.150663, 74.576782)
+    local_time, todays_sunset, sunrise = get_forcast("CITY_PLACEHOLDER", "COUNTRY_PLACEHOLDER", "TimeZone_PLACEHOLDER", LATITUDE_PLACEHOLDER, LONGITUDE_PLACEHOLDER)
     return local_time, todays_sunset, sunrise
 
 
